@@ -52,34 +52,50 @@ class RoleSerializer(serializers.ModelSerializer):
 		return modelObject
 
 
+class UserListSerializer(serializers.ModelSerializer):
+	role = serializers.SerializerMethodField()
+	created_by = serializers.SerializerMethodField()
+	updated_by = serializers.SerializerMethodField()
+	
+	class Meta:
+		model = User
+		exclude = ['password']
+	
+	def get_role(self, obj):
+		return obj.role.name if obj.role else obj.role
 
-class RegisterSerializer(serializers.ModelSerializer):
-
-    password = serializers.CharField(write_only=True)
-    password2 = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = User
-        fields = ('username', 'email', 'password', 'password2','first_name','last_name')
+	def get_created_by(self, obj):
+		return obj.created_by.email if obj.created_by else obj.created_by
 		
-    def create(self, validated_data):
-        user = User(
-            username=validated_data['username'],
-            email=validated_data['email']
-        )
-        user.set_password(validated_data['password'])
-        user.save()
-        if not Role.objects.filter(user=user).exists():
-            Role.objects.create(user=user, role='user')
-        return user
+	def get_updated_by(self, obj):
+		return obj.updated_by.email if obj.updated_by else obj.updated_by
+	
+class UserSerializer(serializers.ModelSerializer):
 
-    def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError("Passwords do not match")
-        if User.objects.filter(username=data['username']).exists():
-            raise serializers.ValidationError("Username already exists")
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError("Email already exists")
-        if len(data['password']) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters")
-        return data
+	class Meta:
+		model = User
+		fields = '__all__'
+
+		extra_kwargs = {
+			'password': {
+				'write_only': True,
+				'required': False,
+			},
+		}
+
+	def create(self, validated_data):
+		modelObject = super().create(validated_data=validated_data)
+		modelObject.set_password(validated_data["password"])
+		user = get_current_authenticated_user()
+		if user is not None:
+			modelObject.created_by = user
+		modelObject.save()
+		return modelObject
+	
+	def update(self, instance, validated_data):
+		modelObject = super().update(instance=instance, validated_data=validated_data)
+		user = get_current_authenticated_user()
+		if user is not None:
+			modelObject.updated_by = user
+		modelObject.save()
+		return modelObject
