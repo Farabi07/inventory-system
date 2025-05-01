@@ -29,14 +29,22 @@ def register(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
-        role_name = request.data.get('role', '').strip().upper()
-        if role_name:
-            try:
-                role = Role.objects.get(name=role_name)
-                user.role = role
-                user.save()
-            except Role.DoesNotExist:
-                return Response({'error': f"Role '{role_name}' does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+        role_name_or_id = request.data.get('role', '')
+
+        # Handle role as either name or ID
+        try:
+            if isinstance(role_name_or_id, str):
+                role_name_or_id = role_name_or_id.strip().upper()
+                role = Role.objects.get(name=role_name_or_id)
+            else:
+                role = Role.objects.get(pk=role_name_or_id)
+
+            user.role = role
+            user.save()
+        except Role.DoesNotExist:
+            return Response({'error': f"Role '{role_name_or_id}' does not exist."}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({'error': "Invalid role value."}, status=status.HTTP_400_BAD_REQUEST)
 
         tokens = get_tokens_for_user(user)
 

@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -9,7 +8,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django_currentuser.middleware import (get_current_authenticated_user, get_current_user)
 from accounts.models import *
 from rest_framework import serializers
-from django.contrib.auth.models import User
 User = get_user_model()
 
 class RoleListSerializer(serializers.ModelSerializer):
