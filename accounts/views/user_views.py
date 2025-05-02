@@ -36,15 +36,15 @@ def register(request):
             if isinstance(role_name_or_id, str):
                 role_name_or_id = role_name_or_id.strip().upper()
                 role = Role.objects.get(name=role_name_or_id)
-            else:
+            elif isinstance(role_name_or_id, int):
                 role = Role.objects.get(pk=role_name_or_id)
+            else:
+                return Response({'error': "Invalid role value."}, status=status.HTTP_400_BAD_REQUEST)
 
             user.role = role
             user.save()
         except Role.DoesNotExist:
             return Response({'error': f"Role '{role_name_or_id}' does not exist."}, status=status.HTTP_400_BAD_REQUEST)
-        except ValueError:
-            return Response({'error': "Invalid role value."}, status=status.HTTP_400_BAD_REQUEST)
 
         tokens = get_tokens_for_user(user)
 

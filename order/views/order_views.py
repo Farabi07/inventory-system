@@ -9,7 +9,7 @@ from order.serializers import OrderSerializer
 from commons.pagination import Pagination
 from django.db.models import Q
 from accounts.models import User
-
+from products.models import Product
 from order.permissions import IsCustomerOrReadOnly, IsAdminOrSeller
 
 
@@ -56,10 +56,32 @@ def createOrder(request):
     serializer = OrderSerializer(data=data, context={'request': request})
 
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Check stock availability before saving the order
+        for item_data in data.get('items', []):
+            product_id = item_data.get('product')
+            quantity = item_data.get('quantity')
+
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return Response({'detail': f"Product ID {product_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if product.stock < quantity:
+                return Response({'detail': f"Not enough stock for {product.name}. Available: {product.stock}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save the order (creates Order and OrderItems)
+        order = serializer.save()
+
+        # Deduct stock
+        for item in order.items.all():  # Assuming related_name='items'
+            product = item.product
+            product.stock -= item.quantity
+            product.save()
+
+        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminOrSeller])
 def searchOrders(request):
