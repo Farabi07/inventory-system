@@ -65,9 +65,6 @@ class SalesInvoiceSerializer(serializers.ModelSerializer):
             'items',
             'total_price', 
         ]
-
-
-
 class ReviewSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.full_name', read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
