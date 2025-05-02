@@ -45,7 +45,6 @@ def getAllProductCategory(request):
 
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_LIST_VIEW.name])
 def getAllProductCategoryWithoutPagination(request):
 	categories  =ProductCategory.objects.all()
 

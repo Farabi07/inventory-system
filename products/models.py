@@ -13,6 +13,9 @@ class ProductCategory(models.Model):
     )
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,related_name="+",null=True,blank=True
     )
+    class Meta:
+        verbose_name_plural = 'ProductCategory'
+        ordering = ('-id', )
 
     def __str__(self):
         return self.name
@@ -31,7 +34,10 @@ class Product(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,related_name="+",null=True,blank=True
     )
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,related_name="+",null=True,blank=True
-    )
+    )    
+    class Meta:
+        verbose_name_plural = 'Product'
+        ordering = ('-id', )
 
     def __str__(self):
         return self.name

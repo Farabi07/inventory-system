@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from drf_spectacular.utils import  extend_schema, OpenApiParameter
 
-# from products.decorators import has_permissions
+
 from products.models import Product
 from products.serializers import ProductSerializer, ProductListSerializer
 from products.filters import ProductFilter
@@ -31,7 +31,6 @@ from drf_spectacular.utils import  extend_schema, OpenApiParameter
 )
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_LIST_VIEW.name])
 def getAllProduct(request):
 	products = Product.objects.all()
 	total_elements = products.count()
@@ -70,7 +69,7 @@ def getAllProduct(request):
 )
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_LIST_VIEW.name])
+
 def getAllProductWithoutPagination(request):
 	products = Product.objects.all()
 
@@ -84,11 +83,11 @@ def getAllProductWithoutPagination(request):
 @extend_schema(request=ProductSerializer, responses=ProductSerializer)
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_DETAILS_VIEW.name])
+
 def getAProduct(request, pk):
 	try:
-		Product = Product.objects.get(pk=pk)
-		serializer = ProductSerializer(Product)
+		products = Product.objects.get(pk=pk)
+		serializer = ProductSerializer(products)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 	except ObjectDoesNotExist:
 		return Response({'detail': f"Product id - {pk} doesn't exists"}, status=status.HTTP_400_BAD_REQUEST)
@@ -99,7 +98,7 @@ def getAProduct(request, pk):
 @extend_schema(request=ProductSerializer, responses=ProductSerializer)
 @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_DETAILS_VIEW.name])
+
 def searchProduct(request):
 	products = ProductFilter(request.GET, queryset=Product.objects.all())
 	products = products.qs
@@ -161,7 +160,7 @@ def createProduct(request):
 @extend_schema(request=ProductSerializer, responses=ProductSerializer)
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_UPDATE.name, PermissionEnum.PERMISSION_PARTIAL_UPDATE.name])
+
 def updateProduct(request,pk):
 	try:
 		products = Product.objects.get(pk=pk)
@@ -181,7 +180,7 @@ def updateProduct(request,pk):
 @extend_schema(request=ProductSerializer, responses=ProductSerializer)
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-# @has_permissions([PermissionEnum.PERMISSION_DELETE.name])
+
 def deleteProduct(request, pk):
 	try:
 		products = Product.objects.get(pk=pk)

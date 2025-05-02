@@ -56,26 +56,28 @@ def createOrder(request):
     serializer = OrderSerializer(data=data, context={'request': request})
 
     if serializer.is_valid():
-        # Check stock availability before saving the order
+      
         for item_data in data.get('items', []):
-            product_id = item_data.get('product')
+            product_id = item_data.get('product_id') 
             quantity = item_data.get('quantity')
+
+            if not product_id:
+                return Response({'detail': "Product ID is missing."}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 product = Product.objects.get(id=product_id)
             except Product.DoesNotExist:
                 return Response({'detail': f"Product ID {product_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if product.stock < quantity:
-                return Response({'detail': f"Not enough stock for {product.name}. Available: {product.stock}"}, status=status.HTTP_400_BAD_REQUEST)
+            if product.stock_quantity < quantity:
+                return Response({'detail': f"Not enough stock for {product.name}. Available: {product.stock_quantity}"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Save the order (creates Order and OrderItems)
         order = serializer.save()
 
-        # Deduct stock
-        for item in order.items.all():  # Assuming related_name='items'
+      
+        for item in order.items.all():  
             product = item.product
-            product.stock -= item.quantity
+            product.stock_quantity -= item.quantity
             product.save()
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
@@ -158,19 +160,23 @@ def deleteOrder(request, pk):
 @permission_classes([IsAuthenticated])
 def getSalesInvoice(request, order_id):
     try:
+   
         order = Order.objects.get(pk=order_id)
-        serializer = OrderSerializer(order)  # Assuming nested serializer includes OrderItems
 
+  
+        customer_name = order.customer.get_full_name() or order.customer.username
+
+      
         invoice_data = {
             'order_id': order.id,
             'customer': {
-                'name': order.customer.full_name,
+                'name': customer_name,
                 'email': order.customer.email,
                 'phone': order.customer.phone_number
             },
             'order_date': order.created_at.strftime("%d-%m-%Y"),
             'status': order.status,
-            'total_price': order.total_price,  # ensure you calculate this in model or serializer
+            'total_price': order.total_amount,  
             'items': [
                 {
                     'product': item.product.name,
@@ -182,47 +188,51 @@ def getSalesInvoice(request, order_id):
             ]
         }
 
+       
         return Response(invoice_data, status=status.HTTP_200_OK)
 
     except Order.DoesNotExist:
+       
         return Response({'detail': f"Order ID {order_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+      
+        return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])  # Ensure only authenticated users can access this
+@permission_classes([IsAuthenticated])  
 def getSalesHistory(request):
-    # Extract query params for filtering
+   
     customer_id = request.query_params.get('customer')
     product_id = request.query_params.get('product')
-    status = request.query_params.get('status')
+    status_filter = request.query_params.get('status')  
     date = request.query_params.get('date')
 
-    filters = Q()  # Start with an empty filter
+    filters = Q()  
 
-    # Apply filters based on the query parameters provided
+   
     if customer_id:
         filters &= Q(customer__id=customer_id)
     if product_id:
         filters &= Q(items__product__id=product_id)
-    if status:
-        filters &= Q(status__iexact=status)  # Case-insensitive match for status
+    if status_filter:
+        filters &= Q(status__iexact=status_filter)  
     if date:
-        filters &= Q(created_at__date=date)  # Filter by exact date
+        filters &= Q(created_at__date=date)  
 
-    # Apply the filters to the Order model
-    orders = Order.objects.filter(filters).distinct()  # Ensure unique results
+  
+    orders = Order.objects.filter(filters).distinct()  
     
-    total_elements = orders.count()  # Get the total number of filtered orders
+    total_elements = orders.count()  
 
-    # Pagination parameters
+  
     page = request.query_params.get('page')
     size = request.query_params.get('size')
 
-    # Set up pagination
     pagination = Pagination()
     pagination.page = page
     pagination.size = size
-    orders = pagination.paginate_data(orders)  # Apply pagination
+    orders = pagination.paginate_data(orders)  
 
-    # Serialize the order data
+    
     serializer = OrderSerializer(orders, many=True)
 
     response = {
@@ -233,5 +243,5 @@ def getSalesHistory(request):
         'total_elements': total_elements,
     }
 
-    # Return the response with the filtered and paginated data
+   
     return Response(response, status=status.HTTP_200_OK)

@@ -7,8 +7,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ['product_id', 'quantity', 'price_at_purchase']
-        read_only_fields = ['price_at_purchase']
+        fields = ['product_id', 'quantity', 'price']
+        read_only_fields = ['price']
 
     def create(self, validated_data):
         product = Product.objects.get(id=validated_data['product_id'])
@@ -21,7 +21,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         product.save()
 
         validated_data['product'] = product
-        validated_data['price_at_purchase'] = product.price
+        validated_data['price'] = product.price
         return super().create(validated_data)
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -42,7 +42,7 @@ class OrderSerializer(serializers.ModelSerializer):
             item_serializer = OrderItemSerializer(data=item_data)
             item_serializer.is_valid(raise_exception=True)
             order_item = item_serializer.save(order=order)
-            total += order_item.price_at_purchase * order_item.quantity
+            total += order_item.price * order_item.quantity
 
         order.total_amount = total
         order.save()
