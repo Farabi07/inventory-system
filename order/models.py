@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from products.models import Product  # adjust import if needed
+from products.models import *
 
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -33,3 +33,17 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
+
+
+class Review(models.Model):
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    rating = models.PositiveIntegerField()  # 1 to 5
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('customer', 'product')  # Prevent multiple reviews per product
+
+    def __str__(self):
+        return f"{self.customer} - {self.product} ({self.rating})"

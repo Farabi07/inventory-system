@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Review
 from products.models import Product
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -14,7 +14,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
         product = Product.objects.get(id=validated_data['product_id'])
         quantity = validated_data['quantity']
 
-        # Decrease stock
         if product.stock_quantity < quantity:
             raise serializers.ValidationError(f"Not enough stock for {product.name}")
 
@@ -40,7 +39,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
         total = 0
         for item_data in items_data:
-            order_item = OrderItem.objects.create(order=order, **item_data)
+            item_serializer = OrderItemSerializer(data=item_data)
+            item_serializer.is_valid(raise_exception=True)
+            order_item = item_serializer.save(order=order)
             total += order_item.price_at_purchase * order_item.quantity
 
         order.total_amount = total
@@ -49,9 +50,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class SalesInvoiceSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source='customer.full_name')  # Adjust field if needed
+    customer_name = serializers.CharField(source='customer.full_name') 
     customer_email = serializers.EmailField(source='customer.email')
-    items = OrderItemSerializer(many=True)  # Assuming related_name='items' is correct
+    items = OrderItemSerializer(many=True)  
 
     class Meta:
         model = Order
@@ -62,6 +63,15 @@ class SalesInvoiceSerializer(serializers.ModelSerializer):
             'customer_name',
             'customer_email',
             'items',
-            'total_price',  # Ensure you have this field or calculate it dynamically
+            'total_price', 
         ]
 
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.full_name', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'product', 'product_name', 'customer_name', 'rating', 'comment', 'created_at']
